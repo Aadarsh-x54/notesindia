@@ -2,7 +2,7 @@ services:
   - type: web
     name: notesindia-backend
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
+    dockerfilePath: ./Dockerfile
     plan: free
     region: singapore
     envVars:
