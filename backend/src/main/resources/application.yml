@@ -27,6 +27,9 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
+    url: ${FLYWAY_DB_URL:${DB_URL:jdbc:postgresql://localhost:5432/notesindia}}
+    user: ${DB_USERNAME:notesindia}
+    password: ${DB_PASSWORD:notesindia_dev_password_change_me}
     locations: classpath:db/migration
     baseline-on-migrate: true
   data:

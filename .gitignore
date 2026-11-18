@@ -38,3 +38,5 @@ ai-service/venv/
 ai-service/data/
 *.pyc
 .pytest_cache/
+.neon
+node_modules/
