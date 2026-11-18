@@ -13,8 +13,8 @@ Thumbs.db
 ai-service/.env
 
 # Data & Storage
-data/
-storage/
+/data/
+/storage/
 **/data/vectorstore/
 **/storage/uploads/
 
