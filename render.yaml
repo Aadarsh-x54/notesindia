@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: notesindia-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    plan: free
+    region: singapore
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: docker
+      - key: PORT
+        value: 8080
+      - key: BACKEND_PORT
+        value: 8080
+      - key: DB_URL
+        value: jdbc:postgresql://ep-billowing-bonus-a1h0i9ic-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+      - key: FLYWAY_DB_URL
+        value: jdbc:postgresql://ep-billowing-bonus-a1h0i9ic.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+      - key: DB_USERNAME
+        value: neondb_owner
+      - key: DB_PASSWORD
+        value: npg_nRsqP0figD4E
+      - key: CACHE_TYPE
+        value: simple
+      - key: JWT_SECRET
+        value: tFQ1cWVTKQxtVLrfGKXH7dz7r7HmQ8/BNNmIWkOcph4=
+      - key: CORS_ALLOWED_ORIGINS
+        value: "*"
