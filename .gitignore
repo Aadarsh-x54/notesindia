@@ -1,0 +1,40 @@
+# OS & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Environment
+.env
+.env.local
+.env.*.local
+**/.env
+ai-service/.env
+
+# Data & Storage
+data/
+storage/
+**/data/vectorstore/
+**/storage/uploads/
+
+# Java / Maven
+backend/target/
+backend/storage/
+*.jar
+*.war
+*.log
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Python / AI Service
+ai-service/__pycache__/
+ai-service/**/__pycache__/
+ai-service/.venv/
+ai-service/venv/
+ai-service/data/
+*.pyc
+.pytest_cache/

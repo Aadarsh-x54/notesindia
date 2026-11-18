@@ -1,0 +1,173 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: notesindia-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-notesindia}
+      POSTGRES_USER: ${POSTGRES_USER:-notesindia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-notesindia_dev_password_change_me}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-notesindia} -d ${POSTGRES_DB:-notesindia}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: notesindia-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: notesindia-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin_change_me}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: notesindia-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${S3_ACCESS_KEY:-minioadmin} ${S3_SECRET_KEY:-minioadmin_change_me};
+      mc mb --ignore-existing local/${S3_BUCKET:-notesindia-files};
+      exit 0;
+      "
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: notesindia-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: notesindia-ai-service
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_started
+    environment:
+      AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:-CHANGE_ME_INTERNAL_AI_SERVICE_SECRET_KEY_NOTESINDIA}
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b}
+      OLLAMA_TEMPERATURE: ${OLLAMA_TEMPERATURE:-0.2}
+      OLLAMA_CONNECT_TIMEOUT: ${OLLAMA_CONNECT_TIMEOUT:-10}
+      OLLAMA_READ_TIMEOUT: ${OLLAMA_READ_TIMEOUT:-180}
+      OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-4096}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      VECTOR_STORE_TYPE: ${VECTOR_STORE_TYPE:-faiss}
+      VECTOR_STORE_DIR: /app/data/vectorstore
+      CHUNK_SIZE: ${CHUNK_SIZE:-800}
+      CHUNK_OVERLAP: ${CHUNK_OVERLAP:-150}
+      RAG_TOP_K: ${RAG_TOP_K:-5}
+      RAG_MIN_SCORE: ${RAG_MIN_SCORE:-0.15}
+    ports:
+      - "${AI_SERVICE_PORT:-8000}:8000"
+    volumes:
+      - ai_vector_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: notesindia-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-notesindia}
+      DB_USERNAME: ${POSTGRES_USER:-notesindia}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-notesindia_dev_password_change_me}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-s3}
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-notesindia-files}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin_change_me}
+      S3_PATH_STYLE_ACCESS: "true"
+      JWT_SECRET: ${JWT_SECRET:-CHANGE_ME_TO_A_SECURE_256_BIT_BASE64_OR_LONG_RANDOM_SECRET_KEY_NOTESINDIA_2026}
+      AI_SERVICE_URL: http://ai-service:8000
+      AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:-CHANGE_ME_INTERNAL_AI_SERVICE_SECRET_KEY_NOTESINDIA}
+      AI_SERVICE_TIMEOUT_SECONDS: ${AI_SERVICE_TIMEOUT_SECONDS:-180}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - backend_uploads:/app/storage
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    container_name: notesindia-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  ollama_data:
+  ai_vector_data:
+  backend_uploads:

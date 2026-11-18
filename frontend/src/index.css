@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+    background-color: #161616;
+    color: #ffffff;
+  }
+
+  /* Clean monochromatic scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #161616;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #333333;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #4d4d4d;
+  }
+}
+
+@layer components {
+  .ni-card {
+    @apply bg-ni-black border border-ni-border transition-colors duration-150;
+  }
+  .ni-card-interactive {
+    @apply bg-ni-black border border-ni-border hover:border-ni-borderHover transition-colors duration-150;
+  }
+  .ni-surface {
+    @apply bg-ni-surface border border-ni-border;
+  }
+  .ni-input {
+    @apply w-full bg-ni-black border border-ni-border px-3.5 py-2.5 text-sm text-white placeholder-ni-subtle focus:outline-none focus:border-white transition-colors duration-150;
+  }
+  .ni-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-white text-black font-medium text-sm px-4 py-2.5 hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150;
+  }
+  .ni-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 bg-ni-surface2 text-white border border-ni-border font-medium text-sm px-4 py-2.5 hover:bg-ni-surface3 hover:border-ni-borderHover disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150;
+  }
+  .ni-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 text-ni-muted hover:text-white hover:bg-ni-surface2 text-sm px-3 py-2 transition-colors duration-150;
+  }
+}

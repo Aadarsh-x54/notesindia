@@ -1,0 +1,25 @@
+# Standalone local development profile (zero external DB/Redis required)
+# Run with: --spring.profiles.active=local
+spring:
+  datasource:
+    url: jdbc:h2:file:./storage/notesindia_local_db;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+  flyway:
+    enabled: false
+  cache:
+    type: simple
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+notesindia:
+  storage:
+    provider: local
+    local-dir: ./storage/uploads
+  seed-demo-data: true
